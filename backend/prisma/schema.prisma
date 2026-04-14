@@ -1,0 +1,481 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  USER
+  EMPLOYEE
+  ADMIN
+}
+
+enum ServiceType {
+  CREATIVE_DESIGN
+  WEB_DEVELOPMENT
+  COURSES
+  WEBINARS
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalType {
+  ORDER
+  CERTIFICATE
+  EMPLOYEE_REGISTRATION
+  TASK
+  COURSE_PURCHASE
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum EnrollmentStatus {
+  PENDING_PAYMENT
+  PAYMENT_SUBMITTED
+  WAITING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+enum EmployeeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum VideoType {
+  CLOUDINARY
+  YOUTUBE
+}
+
+enum CertificateStatus {
+  NOT_ELIGIBLE
+  WAITING_APPROVAL
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  phone         String?  @unique
+  username      String   @unique
+  passwordHash  String?
+  firebaseUid   String?  @unique
+  isFirebaseUser Boolean @default(false)
+  isEmailVerified Boolean @default(false)
+  isPhoneVerified Boolean @default(false)
+  avatar        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  orders        Order[]
+  enrollments   CourseEnrollment[]
+  hostedMeetings Meeting[]
+  meetingAttendees MeetingAttendee[]
+  otps          OTP[]
+  testimonials  Testimonial[]
+  approvals     Approval[]
+  quizAttempts  QuizAttempt[]
+  certificates  Certificate[]
+  reviews       CourseReview[]
+  moduleProgress ModuleProgress[]
+
+  @@map("users")
+}
+
+model Employee {
+  id              String         @id @default(cuid())
+  name            String
+  email           String         @unique
+  phone           String?        @unique
+  passwordHash    String
+  assignedService ServiceType
+  status          EmployeeStatus @default(PENDING)
+  isEmailVerified Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  otps            OTP[]
+  assignedOrders  Order[]
+
+  @@map("employees")
+}
+
+model Admin {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  blogPosts    BlogPost[]
+
+  @@map("admins")
+}
+
+model OTP {
+  id         String   @id @default(cuid())
+  identifier String
+  code       String
+  type       String   // "email" | "phone"
+  purpose    String   // "register" | "forgot_password" | "employee_register"
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@map("otps")
+}
+
+// ─── CENTRALIZED APPROVAL SYSTEM ──────────────────────────────────────────────
+model Approval {
+  id          String         @id @default(cuid())
+  type        ApprovalType
+  status      ApprovalStatus @default(PENDING)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data        Json?          // For storing contextual details
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@map("approvals")
+}
+
+// ─── DESIGN TEMPLATE SYSTEM ───────────────────────────────────────────────────
+model TemplateCategory {
+  id        String           @id @default(cuid())
+  title     String           @unique
+  folders   TemplateFolder[]
+  createdAt DateTime         @default(now())
+
+  @@map("template_categories")
+}
+
+model TemplateFolder {
+  id           String           @id @default(cuid())
+  categoryId   String
+  category     TemplateCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  folderNumber String           @unique
+  description  String?
+  images       String[]         // Cloudinary URLs
+  isActive     Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+
+  orders       Order[]
+
+  @@map("template_folders")
+}
+
+model WebsiteProject {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  images      String[] // Cloudinary URLs
+  htmlCode    String?
+  cssCode     String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  orders      Order[]
+
+  @@map("website_projects")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id])
+  serviceType     ServiceType
+  customerName    String
+  customerPhone   String
+  category        String?
+  description     String?
+  status          OrderStatus @default(PENDING_PAYMENT)
+
+  templateFolderId String?
+  templateFolder   TemplateFolder? @relation(fields: [templateFolderId], references: [id])
+
+  websiteProjectId String?
+  websiteProject   WebsiteProject? @relation(fields: [websiteProjectId], references: [id])
+
+  employeeId      String?
+  employee        Employee?    @relation(fields: [employeeId], references: [id])
+
+  outputImages    String[]
+  payment         Payment?
+  totalAmount     Float?
+  notes           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+model Payment {
+  id                  String        @id @default(cuid())
+  orderId             String?       @unique
+  order               Order?        @relation(fields: [orderId], references: [id])
+  enrollmentId        String?       @unique
+  enrollment          CourseEnrollment? @relation(fields: [enrollmentId], references: [id])
+  razorpayOrderId     String        @unique
+  razorpayPaymentId   String?
+  razorpaySignature   String?
+  amount              Float
+  currency            String        @default("INR")
+  status              PaymentStatus @default(CREATED)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+// ─── COURSE / LMS SYSTEM ──────────────────────────────────────────────────────
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Float
+  thumbnail   String?
+  isActive    Boolean  @default(true)
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  modules      CourseModule[]
+  quiz         Quiz?
+  enrollments  CourseEnrollment[]
+  certificates Certificate[]
+  reviews      CourseReview[]
+
+  @@map("courses")
+}
+
+model CourseModule {
+  id          String    @id @default(cuid())
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  videoUrl    String?   // Cloud or YouTube URL
+  videoType   VideoType? // CLOUDINARY or YOUTUBE
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  progress    ModuleProgress[]
+
+  @@map("course_modules")
+}
+
+// Track which modules each user has completed
+model ModuleProgress {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  moduleId  String
+  module    CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  completed Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([userId, moduleId])
+  @@map("module_progress")
+}
+
+model CourseEnrollment {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  courseId  String
+  course    Course           @relation(fields: [courseId], references: [id])
+  status    EnrollmentStatus @default(PENDING_PAYMENT)
+  paymentProofUrl String?
+  approvedAt DateTime?
+  rejectedAt DateTime?
+  rejectionReason String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  payment   Payment?
+
+  @@unique([userId, courseId])
+  @@map("course_enrollments")
+}
+
+// ─── QUIZ SYSTEM ──────────────────────────────────────────────────────────────
+model Quiz {
+  id        String   @id @default(cuid())
+  courseId  String   @unique
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions QuizQuestion[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id            String   @id @default(cuid())
+  quizId        String
+  quiz          Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  question      String
+  options       String[]
+  correctOption Int      // Index 0-3
+  createdAt     DateTime @default(now())
+
+  @@map("quiz_questions")
+}
+
+model QuizAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  courseId  String
+  score     Int
+  passed    Boolean
+  createdAt DateTime @default(now())
+
+  @@map("quiz_attempts")
+}
+
+// ─── CERTIFICATE SYSTEM ───────────────────────────────────────────────────────
+model Certificate {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id])
+  courseId   String
+  course     Course            @relation(fields: [courseId], references: [id])
+  pdfUrl     String?           // Cloudinary/Supabase URL
+  status     CertificateStatus @default(NOT_ELIGIBLE)
+  issuedAt   DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@unique([userId, courseId])
+  @@map("certificates")
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  meetingCode String   @unique
+  title       String?
+  password    String?
+  hostId      String
+  host        User     @relation(fields: [hostId], references: [id])
+  isActive    Boolean  @default(true)
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  createdAt   DateTime @default(now())
+
+  attendees   MeetingAttendee[]
+
+  @@map("meetings")
+}
+
+model MeetingAttendee {
+  id        String   @id @default(cuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  joinedAt  DateTime @default(now())
+  leftAt    DateTime?
+
+  @@map("meeting_attendees")
+}
+
+model Testimonial {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  name      String
+  role      String?
+  content   String
+  rating    Int      @default(5)
+  isApproved Boolean @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("testimonials")
+}
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String
+  excerpt     String?
+  thumbnail   String?
+  authorId    String
+  author      Admin    @relation(fields: [authorId], references: [id])
+  tags        String[]
+  isPublished Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("blog_posts")
+}
+
+model Coupon {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  discountType  String   // "PERCENTAGE" or "FIXED"
+  discountValue Float
+  maxUses       Int?
+  usedCount     Int      @default(0)
+  expiresAt     DateTime?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@map("coupons")
+}
+
+model CourseReview {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id])
+  rating    Int      @default(5)
+  comment   String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@map("course_reviews")
+}
