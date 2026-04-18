@@ -34,7 +34,7 @@ export default function AdminCourseManagement({ params }: { params: Promise<{ id
     correctOption: 0 
   });
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
   const headers = {
     "Content-Type": "application/json",
     Authorization: `Bearer ${session?.user?.backendToken}`

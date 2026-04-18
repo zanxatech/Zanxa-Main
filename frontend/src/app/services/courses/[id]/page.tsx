@@ -32,15 +32,16 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
   const [markingComplete, setMarkingComplete] = useState<string | null>(null);
   const [allCompleted, setAllCompleted] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
   const authHeaders = () => ({
     "Content-Type": "application/json",
     Authorization: `Bearer ${user?.backendToken}`
   });
 
   useEffect(() => {
-    if (id) fetchCourse();
-  }, [id, user?.backendToken]);
+    // Wait for auth to finish loading before fetching — ensures backendToken is ready
+    if (id && !authLoading) fetchCourse();
+  }, [id, user?.backendToken, authLoading]);
 
   const fetchCourse = async () => {
     setLoading(true);
@@ -146,10 +147,10 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
       const enrollData = await enrollRes.json();
       if (!enrollRes.ok) throw new Error(enrollData.error);
 
-      // Create Razorpay order
+      // Create Razorpay order — backend fetches price from DB directly
       const orderRes = await fetch(`${API_URL}/payments/create-order`, {
         method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ amount: course.price, enrollmentId: enrollData.enrollment.id })
+        body: JSON.stringify({ enrollmentId: enrollData.enrollment.id })
       });
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.error);
@@ -176,8 +177,16 @@ export default function CourseDetailPage({ params }: { params: Promise<{ id: str
           });
           if (verifyRes.ok) {
             setShowEnrollModal(false);
-            setEnrollmentStatus("WAITING_APPROVAL");
-            fetchCourse();
+            // Payment verified — backend auto-approves enrollment
+            // Force full page reload to ensure fresh auth + enrollment state
+            setIsPurchased(true);
+            setEnrollmentStatus("APPROVED");
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
+          } else {
+            const errData = await verifyRes.json();
+            alert("Verification failed: " + (errData.error || "Please contact support."));
           }
         }
       };

@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from "react";
 import { 
   FileText, Plus, Trash2, Edit3, Eye, Loader2, 
-  CheckCircle, Clock, Tag, X, Send, Image as ImageIcon
+  CheckCircle, Clock, Tag, X, Send, Image as ImageIcon, Upload
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";

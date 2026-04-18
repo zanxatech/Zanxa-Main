@@ -13,5 +13,22 @@ server.listen(PORT, () => {
   console.log(`📊 Environment: ${process.env.NODE_ENV}`);
 });
 
-// Last Restart: 2026-04-14T01:14:00
+// Graceful Shutdown
+function shutdown(signal) {
+  console.log(`\n🛑 Received ${signal}. Shutting down server...`);
+  server.close(() => {
+    console.log('✅ Server closed. Releasing port 5000.');
+    process.exit(0);
+  });
+  
+  // Force exit if server doesn't close in 10s
+  setTimeout(() => {
+    console.log('⚠️ Forced shutdown due to timeout.');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+
 module.exports = server;

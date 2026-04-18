@@ -29,6 +29,7 @@ export default function AdminCreativeTab({ apiUrl, user }: AdminCreativeTabProps
   const [folderForm, setFolderForm] = useState({
     number: "",
     description: "",
+    price: "",
     images: [] as string[], // Base64
     existingImages: [] as string[] // URLs
   });
@@ -143,6 +144,7 @@ export default function AdminCreativeTab({ apiUrl, user }: AdminCreativeTabProps
     setFolderForm({
       number: f.folderNumber,
       description: f.description || "",
+      price: String(f.price || 199),
       images: [],
       existingImages: f.images || []
     });
@@ -150,7 +152,7 @@ export default function AdminCreativeTab({ apiUrl, user }: AdminCreativeTabProps
   };
 
   const resetFolderForm = () => {
-    setFolderForm({ number: "", description: "", images: [], existingImages: [] });
+    setFolderForm({ number: "", description: "", price: "", images: [], existingImages: [] });
     setEditingId(null);
     setShowFolderForm(null);
   };
@@ -225,8 +227,12 @@ export default function AdminCreativeTab({ apiUrl, user }: AdminCreativeTabProps
                           <input value={folderForm.number} onChange={e => setFolderForm(f => ({...f, number: e.target.value}))} placeholder="e.g. F-101 Premium Design" className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-[var(--color-gold)]/50 transition-all text-sm shadow-inner"/>
                         </div>
                         <div>
-                          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block mb-3">Description</label>
-                          <textarea value={folderForm.description} onChange={e => setFolderForm(f => ({...f, description: e.target.value}))} rows={6} placeholder="Describe the design features, tech stack, or style..." className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-[var(--color-gold)]/50 transition-all text-sm resize-none shadow-inner"/>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block mb-3">Description / Features</label>
+                          <textarea value={folderForm.description} onChange={e => setFolderForm(f => ({...f, description: e.target.value}))} rows={2} placeholder="Describe the design style..." className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-[var(--color-gold)]/50 transition-all text-sm resize-none shadow-inner"/>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block mb-3">Template Price (₹)</label>
+                          <input type="number" value={folderForm.price} onChange={e => setFolderForm(f => ({...f, price: e.target.value}))} placeholder="e.g. 499" className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl px-5 py-4 text-white focus:outline-none focus:border-[var(--color-gold)]/50 transition-all text-sm shadow-inner"/>
                         </div>
                       </div>
 
@@ -321,7 +327,10 @@ function FolderCard({ folder, onEdit, onDelete }: any) {
         )}
       </div>
       <div className="p-5 flex flex-col flex-1">
-        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] mb-1">Catalog ID</p>
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Catalog ID</p>
+          <p className="text-[10px] text-[var(--color-gold)] font-black uppercase tracking-widest">₹{(folder.price || 199).toLocaleString()}</p>
+        </div>
         <h3 className="font-black text-white text-sm group-hover:text-[var(--color-gold)] transition-colors">{folder.folderNumber}</h3>
         {folder.description && (
           <p className="text-zinc-500 text-[11px] mt-2 line-clamp-2 leading-relaxed italic">{folder.description}</p>

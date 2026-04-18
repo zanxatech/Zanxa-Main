@@ -4,37 +4,31 @@ import { motion } from "framer-motion";
 import { ArrowRight, Calendar, User } from "lucide-react";
 import Link from "next/link";
 
-const blogPosts = [
-  {
-    id: 1,
-    title: "10 Principles of Premium Web Design in 2026",
-    excerpt: "Discover how luxury brands are styling their digital presence using minimal layouts and strategic typography.",
-    author: "Zanxa Editorial",
-    date: "April 10, 2026",
-    image: "/blog-placeholder-1.jpg", 
-    tag: "Design",
-  },
-  {
-    id: 2,
-    title: "Why Custom Software outpaces SaaS in the Long Run",
-    excerpt: "An in-depth analysis of scaling challenges and when it makes financial sense to build your own platform over renting one.",
-    author: "Tech Team",
-    date: "March 28, 2026",
-    image: "/blog-placeholder-2.jpg",
-    tag: "Engineering",
-  },
-  {
-    id: 3,
-    title: "Maximizing ROI with Live Webinars",
-    excerpt: "Learn how interactive real-time networking and expert-led tech discussions lead to significantly higher conversion rates.",
-    author: "Marketing Dept",
-    date: "March 15, 2026",
-    image: "/blog-placeholder-3.jpg",
-    tag: "Growth",
-  },
-];
+import { useState, useEffect } from "react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
 
 export default function BlogPreview() {
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const res = await fetch(`${API_URL}/blogs`);
+        if (res.ok) {
+          const data = await res.json();
+          // Keep only the first 3 posts for the preview
+          setBlogPosts((data.posts || []).slice(0, 3));
+        }
+      } catch (err) {
+        console.error("Failed to fetch blogs", err);
+      }
+    };
+    fetchBlogs();
+  }, []);
+
+  if (blogPosts.length === 0) return null;
+
   return (
     <section className="w-full bg-[var(--color-soft-white)] dark:bg-zinc-900 py-24 px-6 transition-colors">
       <div className="max-w-6xl mx-auto flex flex-col">
@@ -84,7 +78,7 @@ export default function BlogPreview() {
               {/* Image placeholder with gradient */}
               <div className="w-full h-48 bg-gradient-to-br from-[var(--color-beige)] to-[#e1dbce] dark:from-zinc-800 dark:to-zinc-900 relative overflow-hidden">
                 <div className="absolute top-4 left-4 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[var(--color-royal-brown)] dark:text-[var(--color-gold)] z-10">
-                  {post.tag}
+                  {post.tags && post.tags.length > 0 ? post.tags[0] : "Article"}
                 </div>
                 {/* Optional: Add actual Image component here when paths are ready */}
                 <div className="absolute inset-0 bg-black/5 group-hover:bg-black/0 transition-colors duration-500" />
@@ -94,11 +88,11 @@ export default function BlogPreview() {
                 <div className="flex items-center gap-4 text-xs text-[var(--color-royal-brown)]/60 dark:text-zinc-500 mb-4">
                   <span className="flex items-center gap-1">
                     <Calendar size={14} />
-                    {post.date}
+                    {new Date(post.publishedAt || post.createdAt).toLocaleDateString()}
                   </span>
                   <span className="flex items-center gap-1">
                     <User size={14} />
-                    {post.author}
+                    {post.author?.name || "Zanxa Editorial"}
                   </span>
                 </div>
                 
@@ -111,7 +105,7 @@ export default function BlogPreview() {
                 </p>
                 
                 <Link 
-                  href={`/blog/${post.id}`}
+                  href={`/blog/${post.slug}`}
                   className="inline-flex items-center gap-2 text-sm font-bold text-[var(--color-royal-brown)] dark:text-[var(--color-gold)] hover:gap-3 transition-all mt-auto"
                 >
                   Read Article

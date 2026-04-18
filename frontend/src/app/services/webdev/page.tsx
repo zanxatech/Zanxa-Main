@@ -2,15 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Folder, FolderOpen, Lock, MonitorSmartphone, Code, CheckCircle, ChevronRight, Loader2 } from "lucide-react";
+import { Folder, FolderOpen, Lock, MonitorSmartphone, Code, CheckCircle, ChevronRight, Loader2, IndianRupee, Sparkles } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
 
 export default function WebDevServicePage() {
   const [activeFolder, setActiveFolder] = useState<string | null>(null);
   const [projects, setProjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
   const { user }: any = useAuth();
 
   useEffect(() => {
@@ -35,11 +37,126 @@ export default function WebDevServicePage() {
     fetchProjects();
   }, []);
 
+  const loadRazorpay = async () => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleCreateOrder = async (project: any) => {
+    if (!user) {
+      alert("Please log in to purchase this solution.");
+      return;
+    }
+    setOrderLoading(true);
+
+    try {
+      // 1. Create Internal Order
+      const res = await fetch(`${API_URL}/services/webdev/orders`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.backendToken}`
+        },
+        body: JSON.stringify({
+          customerName: user.name,
+          customerPhone: user.phone || "0000000000",
+          websiteProjectId: project.id,
+          description: `Direct purchase of ${project.name}`
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create order");
+
+      // 2. Load Razorpay
+      const isLoaded = await loadRazorpay();
+      if (!isLoaded) throw new Error("Razorpay SDK failed to load");
+
+      // 3. Create RZP Order (Backend will fetch price from DB)
+      const payRes = await fetch(`${API_URL}/payments/create-order`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.backendToken}`
+        },
+        body: JSON.stringify({ orderId: data.order.id }) 
+      });
+      const payData = await payRes.json();
+      if (!payRes.ok) throw new Error(payData.error || "Payment gateway error");
+
+      // 4. Open Gateway
+      const options = {
+        key: payData.key,
+        amount: payData.amount,
+        currency: "INR",
+        name: "ZANXA TECH",
+        description: `Project: ${project.name}`,
+        order_id: payData.razorpayOrderId,
+        handler: async (response: any) => {
+          const verifyRes = await fetch(`${API_URL}/payments/verify`, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${user.backendToken}`
+            },
+            body: JSON.stringify({
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+              paymentId: payData.paymentId
+            })
+          });
+
+          if (verifyRes.ok) {
+            setSuccess(true);
+          } else {
+            alert("Verification failed. Please contact support.");
+          }
+        },
+        prefill: {
+          name: user.name,
+          email: user.email,
+        },
+        theme: { color: "#D4AF37" }
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setOrderLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-zinc-950">
         <Loader2 className="w-12 h-12 text-[var(--color-gold)] animate-spin mb-4" />
         <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs">Accessing Project Repository...</p>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
+        <div className="max-w-md w-full text-center space-y-6 animate-in zoom-in duration-500">
+          <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-2xl shadow-green-500/20">
+            <CheckCircle className="text-white w-12 h-12" />
+          </div>
+          <h2 className="text-3xl font-black text-white uppercase tracking-tighter">Order Placed!</h2>
+          <p className="text-zinc-400">Your purchase of the solution has been registered. Our development team will contact you within 24 hours to begin the deployment process.</p>
+          <Link href="/dashboard" className="inline-block px-8 py-4 bg-[var(--color-gold)] text-zinc-900 rounded-2xl font-black uppercase tracking-widest text-xs">
+            Go to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }
@@ -114,11 +231,30 @@ export default function WebDevServicePage() {
                       <span className="flex items-center gap-1 text-green-600 dark:text-green-400"><CheckCircle size={14} /> {project.status}</span>
                     </div>
                   </div>
-                  {!user && (
-                    <Link href={`/auth/login?redirect=/services/webdev`} className="px-6 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full font-bold flex items-center gap-2 hover:opacity-80 transition-opacity">
-                      <Lock size={16} /> Unlock Full View
-                    </Link>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {project.price > 0 && (
+                      <div className="flex flex-col items-end">
+                        <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest">Setup Cost</p>
+                        <p className="text-2xl font-black text-[var(--color-royal-brown)] dark:text-[var(--color-gold)] flex items-center gap-1">
+                          <IndianRupee size={20}/> {project.price.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {!user ? (
+                      <Link href={`/auth/login?redirect=/services/webdev`} className="px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-full font-bold flex items-center gap-2 hover:opacity-80 transition-opacity">
+                        <Lock size={16} /> Unlock Full View
+                      </Link>
+                    ) : project.price > 0 && (
+                      <button 
+                        onClick={() => handleCreateOrder(project)}
+                        disabled={orderLoading}
+                        className="px-8 py-3 bg-[var(--color-gold)] text-zinc-900 rounded-full font-black uppercase tracking-widest text-xs flex items-center gap-2 hover:scale-105 transition-transform shadow-lg shadow-yellow-500/20"
+                      >
+                        {orderLoading ? <Loader2 className="animate-spin" size={16}/> : <Sparkles size={16}/>}
+                        Purchase Solution
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -147,10 +283,10 @@ export default function WebDevServicePage() {
                 </div>
                 
                 <div className="mt-12 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-8 text-center shadow-lg">
-                  <h3 className="text-2xl font-bold text-[var(--color-royal-brown)] dark:text-white mb-4">Want something similar?</h3>
-                  <p className="text-zinc-500 dark:text-zinc-400 mb-6 max-w-xl mx-auto">We can build a tailored solution like {project.name} matching your brand guidelines and business logic.</p>
+                  <h3 className="text-2xl font-bold text-[var(--color-royal-brown)] dark:text-white mb-4">Want something custom?</h3>
+                  <p className="text-zinc-500 dark:text-zinc-400 mb-6 max-w-xl mx-auto">We can build a tailored solution from scratch matching your exact brand guidelines and business flow.</p>
                   <Link href="/services/webdev/contact" className="inline-flex items-center justify-center px-8 py-4 bg-[var(--color-royal-brown)] dark:bg-[var(--color-gold)] text-white dark:text-zinc-900 rounded-full font-bold hover:-translate-y-1 transition-transform shadow-xl">
-                    Request a Proposal
+                    Request a Custom Proposal
                   </Link>
                 </div>
               </div>

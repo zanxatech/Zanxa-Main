@@ -195,6 +195,7 @@ model TemplateFolder {
   createdAt    DateTime         @default(now())
 
   orders       Order[]
+  price        Float            @default(199)
 
   @@map("template_folders")
 }
@@ -211,6 +212,7 @@ model WebsiteProject {
   updatedAt   DateTime @updatedAt
 
   orders      Order[]
+  price       Float    @default(0)
 
   @@map("website_projects")
 }

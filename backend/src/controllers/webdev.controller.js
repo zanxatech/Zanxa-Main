@@ -15,7 +15,7 @@ const getProjects = asyncHandler(async (req, res) => {
 
 // ─── ADMIN: CREATE PROJECT ───────────────────────────────────────────────────
 const createProject = asyncHandler(async (req, res) => {
-  const { title, description, images, htmlCode, cssCode } = req.body;
+  const { title, description, price, images, htmlCode, cssCode } = req.body;
   if (!title || !description) throw AppError('Title and description required', 400);
 
   let imageUrls = [];
@@ -24,7 +24,7 @@ const createProject = asyncHandler(async (req, res) => {
   }
 
   const project = await prisma.websiteProject.create({
-    data: { title, description, images: imageUrls, htmlCode, cssCode }
+    data: { title, description, price: parseFloat(price) || 0, images: imageUrls, htmlCode, cssCode }
   });
   res.status(201).json({ project });
 });
@@ -43,9 +43,26 @@ const placeOrder = asyncHandler(async (req, res) => {
   const { customerName, customerPhone, websiteProjectId, description } = req.body;
   if (!customerName || !customerPhone) throw AppError('Name and phone required', 400);
 
+  let orderUserId = req.user.id;
+  if (req.user.role !== 'USER') {
+    const dummyEmail = `test_${req.user.email}`;
+    let dummyUser = await prisma.user.findUnique({ where: { email: dummyEmail } });
+    if (!dummyUser) {
+      dummyUser = await prisma.user.create({
+        data: { 
+          name: `${req.user.name || 'Admin'} (Test)`, 
+          email: dummyEmail, 
+          username: `test_${Date.now()}`,
+          isEmailVerified: true
+        }
+      });
+    }
+    orderUserId = dummyUser.id;
+  }
+
   const order = await prisma.order.create({
     data: {
-      userId: req.user.id,
+      userId: orderUserId,
       serviceType: 'WEB_DEVELOPMENT',
       customerName,
       customerPhone,
@@ -69,10 +86,10 @@ const getUserOrders = asyncHandler(async (req, res) => {
 
 // ─── ADMIN: UPDATE PROJECT ───────────────────────────────────────────────────
 const updateProject = asyncHandler(async (req, res) => {
-  const { title, description, images, htmlCode, cssCode, isActive } = req.body;
+  const { title, description, price, images, htmlCode, cssCode, isActive } = req.body;
   const { id } = req.params;
 
-  let updateData = { title, description, htmlCode, cssCode, isActive };
+  let updateData = { title, description, price: price ? parseFloat(price) : undefined, htmlCode, cssCode, isActive };
   
   if (images && images.length > 0) {
     // If new images provided, upload them

@@ -56,7 +56,7 @@ export default function EmployeeLoginPage() {
 
     try {
       // Typically, you'd send this to your Express backend or a Next.js server action
-      const res = await fetch("http://localhost:5000/api/auth/register/employee", {
+      const res = await fetch("http://127.0.0.1:5000/api/auth/register/employee", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, phone, password, address, service }),

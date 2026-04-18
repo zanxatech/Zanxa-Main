@@ -22,6 +22,7 @@ export default function AdminWebDevTab({ apiUrl, user }: AdminWebDevTabProps) {
   const [form, setForm] = useState({
     title: "",
     description: "",
+    price: "",
     images: [] as string[], // Base64 strings for upload
     existingImages: [] as string[], // URLs from backend
     isActive: true
@@ -106,6 +107,7 @@ export default function AdminWebDevTab({ apiUrl, user }: AdminWebDevTabProps) {
     setForm({
       title: p.title,
       description: p.description,
+      price: String(p.price || 0),
       images: [],
       existingImages: p.images || [],
       isActive: p.isActive
@@ -114,7 +116,7 @@ export default function AdminWebDevTab({ apiUrl, user }: AdminWebDevTabProps) {
   };
 
   const resetForm = () => {
-    setForm({ title: "", description: "", images: [], existingImages: [], isActive: true });
+    setForm({ title: "", description: "", price: "", images: [], existingImages: [], isActive: true });
     setEditingId(null);
   };
 
@@ -149,7 +151,11 @@ export default function AdminWebDevTab({ apiUrl, user }: AdminWebDevTabProps) {
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block mb-2">Description</label>
-                <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} rows={4} placeholder="Describe the project features and tech stack..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[var(--color-gold)]/50 text-sm"/>
+                <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))} rows={2} placeholder="Describe the project features and tech stack..." className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[var(--color-gold)]/50 text-sm"/>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block mb-2">Project Price (₹)</label>
+                <input type="number" value={form.price} onChange={e => setForm(f => ({...f, price: e.target.value}))} placeholder="e.g. 15000" className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[var(--color-gold)]/50 text-sm"/>
               </div>
             </div>
 
@@ -243,7 +249,11 @@ function ProjectCard({ project, onEdit, onDelete }: any) {
       </div>
       <div className="p-5">
         <h3 className="font-bold text-white group-hover:text-[var(--color-gold)] transition-colors line-clamp-1">{project.title || "Untitled Project"}</h3>
-        <p className="text-zinc-500 text-xs mt-1 line-clamp-2 h-8">{project.description}</p>
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-zinc-500 text-[10px] uppercase font-bold tracking-widest">₹{(project.price || 0).toLocaleString()}</p>
+          <p className="text-zinc-400 text-[9px] font-medium">{project.images?.length || 0} Slides</p>
+        </div>
+        <p className="text-zinc-500 text-xs mt-2 line-clamp-2 h-8">{project.description}</p>
         
         <div className="flex gap-2 mt-4 pt-4 border-t border-zinc-800">
           <button onClick={onEdit} className="flex-1 py-2 bg-zinc-800 text-zinc-300 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 hover:bg-zinc-700 transition-all">

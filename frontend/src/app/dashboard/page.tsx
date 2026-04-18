@@ -11,7 +11,7 @@ import {
   ChevronRight, AlertCircle
 } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   PENDING_PAYMENT:      { label: "Pending Payment",    color: "text-zinc-400 bg-zinc-800 border-zinc-700", icon: Clock },

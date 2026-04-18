@@ -5,5 +5,10 @@
     "razorpay": "^2.9.6",
     "smtp": "^0.0.5",
     "supabase": "^2.89.1"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.10",
+    "tailwindcss": "^4.2.2"
   }
 }

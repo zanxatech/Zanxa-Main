@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { 
   Users, UserPlus, Mail, Phone, Briefcase, 
   Trash2, ShieldCheck, Loader2, ArrowRight, 
-  Clock, CheckCircle, AlertCircle 
+  Clock, CheckCircle, AlertCircle, X 
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -19,8 +19,12 @@ export default function AdminStaffTab({ apiUrl }: AdminStaffTabProps) {
   const [employees, setEmployees] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteForm, setInviteForm] = useState({
+    name: "", email: "", phone: "", password: "", assignedService: "CREATIVE_TEMPLATES"
+  });
 
   const headers = {
     Authorization: `Bearer ${user?.backendToken}`
@@ -88,6 +92,28 @@ export default function AdminStaffTab({ apiUrl }: AdminStaffTabProps) {
     }
   };
 
+  const handleInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${apiUrl}/employee/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(inviteForm)
+      });
+      if (res.ok) {
+        alert("Employee successfully invited! They are now in PENDING status.");
+        setShowInviteModal(false);
+        setInviteForm({ name: "", email: "", phone: "", password: "", assignedService: "CREATIVE_TEMPLATES" });
+        fetchData();
+      } else {
+        const errorData = await res.json();
+        alert(errorData.error || "Failed to invite employee");
+      }
+    } catch (err) {
+      alert("Registration failed");
+    }
+  };
+
   if (loading) return (
     <div className="flex justify-center p-32">
       <Loader2 className="w-12 h-12 text-[var(--color-gold)] animate-spin" />
@@ -132,7 +158,12 @@ export default function AdminStaffTab({ apiUrl }: AdminStaffTabProps) {
         <section>
           <div className="flex items-center justify-between mb-6 px-4">
             <h2 className="text-xl font-bold dark:text-white">Active Workforce</h2>
-            <button className="text-[var(--color-gold)] text-xs font-bold uppercase flex items-center gap-2">Invite Member <UserPlus size={14} /></button>
+            <button 
+              onClick={() => setShowInviteModal(true)}
+              className="text-[var(--color-gold)] text-xs font-bold uppercase flex items-center gap-2 hover:text-[var(--color-royal-brown)] dark:hover:text-white transition-colors"
+            >
+              Invite Member <UserPlus size={14} />
+            </button>
           </div>
           <div className="space-y-4">
             {employees.map(emp => (
@@ -267,6 +298,86 @@ export default function AdminStaffTab({ apiUrl }: AdminStaffTabProps) {
                 Go Back
               </button>
            </div>
+        </div>
+      )}
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-zinc-950/90 backdrop-blur-xl z-[80] flex items-center justify-center p-6">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[3rem] p-10 border border-white/5 shadow-2xl relative">
+            <button 
+              onClick={() => setShowInviteModal(false)}
+              className="absolute top-8 right-8 text-zinc-400 hover:text-red-500 transition-colors"
+            >
+              <X size={24} />
+            </button>
+            <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">Invite New Member</h3>
+            <p className="text-zinc-500 text-sm mb-8">Register a new employee for the workforce.</p>
+
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Full Name</label>
+                <input 
+                  type="text" required
+                  value={inviteForm.name}
+                  onChange={(e) => setInviteForm({...inviteForm, name: e.target.value})}
+                  className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-4 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-gold)] outline-none"
+                  placeholder="e.g. John Doe"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Email</label>
+                  <input 
+                    type="email" required
+                    value={inviteForm.email}
+                    onChange={(e) => setInviteForm({...inviteForm, email: e.target.value})}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-4 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-gold)] outline-none"
+                    placeholder="john@example.com"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Phone</label>
+                  <input 
+                    type="tel" required
+                    value={inviteForm.phone}
+                    onChange={(e) => setInviteForm({...inviteForm, phone: e.target.value})}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-4 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-gold)] outline-none"
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Temp Password</label>
+                  <input 
+                    type="text" required
+                    value={inviteForm.password}
+                    onChange={(e) => setInviteForm({...inviteForm, password: e.target.value})}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-4 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-gold)] outline-none"
+                    placeholder="Zanxa@1234"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-400 uppercase mb-2">Service Type</label>
+                  <select 
+                    value={inviteForm.assignedService}
+                    onChange={(e) => setInviteForm({...inviteForm, assignedService: e.target.value})}
+                    className="w-full bg-zinc-50 dark:bg-zinc-800 border-none rounded-xl p-4 text-zinc-900 dark:text-white focus:ring-2 focus:ring-[var(--color-gold)] outline-none"
+                  >
+                    <option value="CREATIVE_TEMPLATES">Creative Templates</option>
+                    <option value="WEB_DEVELOPMENT">Web Development</option>
+                  </select>
+                </div>
+              </div>
+              <button 
+                type="submit"
+                className="w-full mt-6 py-4 bg-[var(--color-gold)] text-zinc-950 font-bold uppercase rounded-xl hover:bg-white transition-colors"
+              >
+                Send Invitation
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

@@ -10,7 +10,7 @@ const getDesignGallery = asyncHandler(async (req, res) => {
     include: {
       folders: {
         where: { isActive: true },
-        select: { id: true, folderNumber: true, images: true }
+        select: { id: true, folderNumber: true, images: true, price: true }
       }
     },
     orderBy: { title: 'asc' }
@@ -31,7 +31,7 @@ const createCategory = asyncHandler(async (req, res) => {
 
 // ─── ADMIN: CREATE FOLDER IN CATEGORY ────────────────────────────────────────
 const createFolder = asyncHandler(async (req, res) => {
-  const { categoryId, folderNumber, description, images } = req.body; // images as base64 array
+  const { categoryId, folderNumber, description, images, price } = req.body; // images as base64 array
   if (!categoryId || !folderNumber || !images) throw AppError('Missing required fields', 400);
 
   // Upload to Cloudinary
@@ -42,7 +42,8 @@ const createFolder = asyncHandler(async (req, res) => {
       categoryId,
       folderNumber,
       description: description || null,
-      images: imageUrls
+      images: imageUrls,
+      price: parseFloat(price) || 199
     }
   });
   res.status(201).json({ folder });
@@ -51,7 +52,7 @@ const createFolder = asyncHandler(async (req, res) => {
 // ─── ADMIN: UPDATE FOLDER ────────────────────────────────────────────────────
 const updateFolder = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { folderNumber, description, images } = req.body; // images as array of URLs/Base64
+  const { folderNumber, description, images, price } = req.body; // images as array of URLs/Base64
 
   // Check if we need to do new uploads
   let finalImages = images;
@@ -68,7 +69,8 @@ const updateFolder = asyncHandler(async (req, res) => {
     data: {
       folderNumber,
       description,
-      images: finalImages
+      images: finalImages,
+      price: price ? parseFloat(price) : undefined
     }
   });
 
@@ -81,9 +83,26 @@ const placeOrder = asyncHandler(async (req, res) => {
   
   if (!customerName || !customerPhone) throw AppError('Name and phone are required', 400);
 
+  let orderUserId = req.user.id;
+  if (req.user.role !== 'USER') {
+    const dummyEmail = `test_${req.user.email}`;
+    let dummyUser = await prisma.user.findUnique({ where: { email: dummyEmail } });
+    if (!dummyUser) {
+      dummyUser = await prisma.user.create({
+        data: { 
+          name: `${req.user.name || 'Admin'} (Test)`, 
+          email: dummyEmail, 
+          username: `test_${Date.now()}`,
+          isEmailVerified: true
+        }
+      });
+    }
+    orderUserId = dummyUser.id;
+  }
+
   const order = await prisma.order.create({
     data: {
-      userId: req.user.id,
+      userId: orderUserId,
       serviceType: 'CREATIVE_DESIGN',
       customerName,
       customerPhone,
@@ -122,6 +141,17 @@ const deleteFolder = asyncHandler(async (req, res) => {
   res.json({ message: 'Folder deleted successfully' });
 });
 
+// ─── PUBLIC: GET FOLDER BY NUMBER ───────────────────────────────────────────
+const getFolderByNumber = asyncHandler(async (req, res) => {
+  const { number } = req.params;
+  const folder = await prisma.templateFolder.findUnique({
+    where: { folderNumber: number },
+    include: { category: true }
+  });
+  if (!folder) throw AppError('Template not found', 404);
+  res.json({ folder });
+});
+
 module.exports = { 
   getDesignGallery, 
   createCategory, 
@@ -130,5 +160,6 @@ module.exports = {
   getAllCreativeContent,
   deleteCategory,
   deleteFolder,
+  getFolderByNumber,
   placeOrder 
 };

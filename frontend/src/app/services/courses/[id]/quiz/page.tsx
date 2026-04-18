@@ -23,7 +23,7 @@ export default function QuizPage({ params }: { params: Promise<{ id: string }> }
   const [error, setError] = useState<string | null>(null);
   const [currentQ, setCurrentQ] = useState(0);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
   const headers = { "Content-Type": "application/json", Authorization: `Bearer ${user?.backendToken}` };
 
   useEffect(() => {

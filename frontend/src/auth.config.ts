@@ -13,7 +13,7 @@ export const authConfig = {
     async signIn({ user, account }: any) {
       if (account?.provider === "google") {
         try {
-          const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+          const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
           const res = await fetch(`${API_URL}/auth/social/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },

@@ -7,7 +7,8 @@ const {
   getAllCreativeContent,
   deleteCategory,
   deleteFolder,
-  updateFolder
+  updateFolder,
+  getFolderByNumber
 } = require('../controllers/creative.controller');
 const { authenticate, requireAdmin } = require('../middleware/auth.middleware');
 
@@ -15,6 +16,7 @@ const router = express.Router();
 
 // Public / User routes
 router.get('/gallery', getDesignGallery);
+router.get('/folders/:number', getFolderByNumber);
 router.post('/order', authenticate, placeOrder);
 
 // Admin routes

@@ -17,7 +17,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null;
 
         const role = (credentials.role as string) || "USER";
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
         
         let endpoint = `${API_URL}/auth/login`;
         if (role === "ADMIN") endpoint = `${API_URL}/auth/login/admin`;

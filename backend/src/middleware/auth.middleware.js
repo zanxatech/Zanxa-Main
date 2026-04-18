@@ -78,19 +78,46 @@ const optionalAuth = async (req, res, next) => {
       req.user = null;
       return next();
     }
+
     const token = authHeader.split(' ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const { email, uid } = decodedToken;
+    let user = null;
+    let role = null;
+    let uid = null;
 
-    let user = await prisma.user.findUnique({ where: { email } });
-    let role = 'USER';
+    // 1. Try Backend JWT (Admin login)
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      if (decoded && decoded.id) {
+        user = await prisma.admin.findUnique({ where: { id: decoded.id } });
+        if (user) {
+          role = 'ADMIN';
+          uid = 'backend_jwt_' + user.id;
+        }
+      }
+    } catch {
+      // Not a valid backend JWT, proceed to Firebase check
+    }
 
+    // 2. Try Firebase ID Token (regular users) — was broken: used undefined `admin` variable
     if (!user) {
-      user = await prisma.admin.findUnique({ where: { email } });
-      if (user) role = 'ADMIN';
-      else {
-        user = await prisma.employee.findUnique({ where: { email } });
-        if (user) role = 'EMPLOYEE';
+      try {
+        const decodedToken = await firebaseAdmin.auth().verifyIdToken(token); // FIX: was `admin.auth()`
+        const { email, uid: firebaseUid } = decodedToken;
+        uid = firebaseUid;
+
+        user = await prisma.user.findUnique({ where: { email } });
+        role = 'USER';
+
+        if (!user) {
+          user = await prisma.admin.findUnique({ where: { email } });
+          if (user) role = 'ADMIN';
+          else {
+            user = await prisma.employee.findUnique({ where: { email } });
+            if (user) role = 'EMPLOYEE';
+          }
+        }
+      } catch {
+        // Token invalid — proceed as unauthenticated
       }
     }
 

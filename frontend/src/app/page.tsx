@@ -2,7 +2,6 @@ import Link from "next/link";
 import { ArrowRight, Code, MonitorPlay, Palette, Video } from "lucide-react";
 import Testimonials from "@/components/landing/Testimonials";
 import FAQ from "@/components/landing/FAQ";
-import Pricing from "@/components/landing/Pricing";
 import BlogPreview from "@/components/landing/BlogPreview";
 
 export default function Home() {
@@ -84,7 +83,6 @@ export default function Home() {
         {/* Additional Landing Page Sections */}
         <Testimonials />
         <FAQ />
-        <Pricing />
         <BlogPreview />
       </div>
     </div>
