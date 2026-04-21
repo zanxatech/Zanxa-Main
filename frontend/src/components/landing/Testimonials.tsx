@@ -13,10 +13,7 @@ export default function Testimonials() {
   useEffect(() => {
     const fetchFeatured = async () => {
       try {
-        let fetchUrl = `${API_URL}/reviews/featured`;
-        if (fetchUrl.includes('localhost')) {
-          fetchUrl = fetchUrl.replace('localhost', '127.0.0.1');
-        }
+        const fetchUrl = `${API_URL}/reviews/featured`;
         const res = await fetch(fetchUrl);
         const data = await res.json();
         setReviews(data.reviews || []);
