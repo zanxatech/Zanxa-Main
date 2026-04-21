@@ -1,3 +1,4 @@
+
 const express = require('express');
 const {
   getCourses, getAdminCourses, getCourse, getFullCourse,
@@ -12,6 +13,17 @@ const {
 const { authenticate, optionalAuth, requireAdmin } = require('../middleware/auth.middleware');
 
 const router = express.Router();
+const multer = require("multer");
+
+const upload = multer({
+  limits: { fileSize: 200 * 1024 * 1024 },
+});
+
+const { uploadCourseVideo } = require("../controllers/course.controller");
+
+router.post("/upload-video", upload.single("file"), uploadCourseVideo);
+
+module.exports = router;
 
 // ─── STATIC ROUTES FIRST (must come before /:id to avoid conflicts) ──────────
 

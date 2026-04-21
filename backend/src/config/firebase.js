@@ -1,43 +1,44 @@
 const admin = require('firebase-admin');
 
 try {
-  const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  let serviceAccount;
+  const saBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
+  const saRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
   const projectId = process.env.FIREBASE_PROJECT_ID;
 
-  // Check if we have a real-looking service account or project ID
-  const hasValidServiceAccount = serviceAccountRaw && 
-    !serviceAccountRaw.includes('your-project-id') && 
-    !serviceAccountRaw.includes('...');
-    
-  const hasValidProjectId = projectId && !projectId.includes('your-project-id');
+  if (saBase64) {
+    try {
+      const decoded = Buffer.from(saBase64, 'base64').toString('utf-8');
+      serviceAccount = JSON.parse(decoded);
+    } catch (e) {
+      console.error('❌ Failed to parse FIREBASE_SERVICE_ACCOUNT_BASE64');
+    }
+  } else if (saRaw) {
+    try {
+      serviceAccount = JSON.parse(saRaw);
+    } catch (e) {
+      console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT is not valid JSON');
+    }
+  }
 
-  if (hasValidServiceAccount || hasValidProjectId) {
+  if (!admin.apps.length) {
     let credential;
-    
-    if (hasValidServiceAccount) {
-      try {
-        const saJson = JSON.parse(serviceAccountRaw);
-        credential = admin.credential.cert(saJson);
-      } catch (e) {
-        console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT is not valid JSON. Falling back to applicationDefault.');
-        credential = admin.credential.applicationDefault();
-      }
+    if (serviceAccount) {
+      credential = admin.credential.cert(serviceAccount);
     } else {
+      console.warn('⚠️ No valid Firebase credentials found, falling back to applicationDefault()');
       credential = admin.credential.applicationDefault();
     }
 
-    if (!admin.apps.length) {
-      admin.initializeApp({
-        credential,
-        projectId: hasValidProjectId ? projectId : undefined
-      });
-      console.log('✅ Firebase Admin Initialized');
-    }
-  } else {
-    console.warn('⚠️ Firebase credentials missing or set to placeholders in .env. Authentication features may be limited.');
+    admin.initializeApp({
+      credential,
+      projectId: projectId || (serviceAccount ? serviceAccount.project_id : undefined)
+    });
+    console.log('✅ Firebase Admin Initialized');
   }
 } catch (error) {
   console.error('❌ Firebase Admin Initialization Error:', error.message);
 }
 
 module.exports = admin;
+
