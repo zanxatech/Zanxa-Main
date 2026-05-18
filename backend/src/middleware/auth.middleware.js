@@ -1,8 +1,7 @@
 const firebaseAdmin = require('../config/firebase'); 
-const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 const authenticate = async (req, res, next) => {
   try {

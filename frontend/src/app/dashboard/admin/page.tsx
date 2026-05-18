@@ -46,6 +46,8 @@ export default function AdminDashboard() {
 
     if (user.backendToken) {
       fetchDashboardData();
+    } else {
+      setLoading(false);
     }
   }, [user, authLoading]);
 

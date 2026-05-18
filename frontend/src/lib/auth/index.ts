@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { authConfig } from "./auth.config";
+import { authConfig } from "./config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,

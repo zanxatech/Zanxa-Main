@@ -4,7 +4,7 @@ try {
   let serviceAccount;
   const saBase64 = process.env.FIREBASE_SERVICE_ACCOUNT_BASE64;
   const saRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
-  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
   if (saBase64) {
     try {
@@ -23,22 +23,32 @@ try {
 
   if (!admin.apps.length) {
     let credential;
-    if (serviceAccount) {
-      credential = admin.credential.cert(serviceAccount);
-    } else {
-      console.warn('⚠️ No valid Firebase credentials found, falling back to applicationDefault()');
-      credential = admin.credential.applicationDefault();
-    }
+    
+    // Check if we have a valid-looking private key to prevent ASN.1 parsing errors
+    const hasValidKey = serviceAccount && 
+                        serviceAccount.private_key && 
+                        serviceAccount.private_key.includes('BEGIN PRIVATE KEY');
 
-    admin.initializeApp({
-      credential,
-      projectId: projectId || (serviceAccount ? serviceAccount.project_id : undefined)
-    });
-    console.log('✅ Firebase Admin Initialized');
+    if (hasValidKey) {
+      credential = admin.credential.cert(serviceAccount);
+      admin.initializeApp({
+        credential,
+        projectId: projectId || serviceAccount.project_id
+      });
+      console.log('✅ Firebase Admin Initialized Successfully');
+    } else {
+      console.error('❌ CRITICAL: Firebase Private Key is missing or invalid in .env');
+      console.log('💡 Note: Backend Auth will return 401 until a valid key is provided.');
+      
+      // Initialize with a dummy config to prevent "App does not exist" crashes
+      // but without a valid cert so it fails gracefully on auth attempts
+      admin.initializeApp({
+        projectId: projectId || 'zanxa-tech-placeholder'
+      });
+    }
   }
 } catch (error) {
   console.error('❌ Firebase Admin Initialization Error:', error.message);
 }
 
 module.exports = admin;
-

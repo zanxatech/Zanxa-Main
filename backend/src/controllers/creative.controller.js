@@ -1,83 +1,22 @@
-const { PrismaClient } = require('@prisma/client');
+
 const { asyncHandler, AppError } = require('../utils/helpers');
 const { uploadMultipleToCloudinary } = require('../services/storage.service');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
+
 
 // ─── USER: GET ALL CATEGORIES & FOLDERS ──────────────────────────────────────
 const getDesignGallery = asyncHandler(async (req, res) => {
-  try {
-    const categories = await prisma.templateCategory.findMany({
-      include: {
-        folders: {
-          where: { isActive: true },
-          select: { id: true, folderNumber: true, images: true, price: true }
-        }
-      },
-      orderBy: { title: 'asc' }
-    });
-    res.json({ categories });
-  } catch (error) {
-    // Fallback with mock data when database is not available
-    console.warn('⚠️ Database unavailable, returning mock gallery data');
-    const mockCategories = [
-      {
-        id: '1',
-        title: 'Logo Design Templates',
-        folders: [
-          {
-            id: 'f1',
-            folderNumber: 1,
-            images: [
-              'https://via.placeholder.com/400x300?text=Logo+Template+1',
-              'https://via.placeholder.com/400x300?text=Logo+Template+2'
-            ],
-            price: 299
-          },
-          {
-            id: 'f2',
-            folderNumber: 2,
-            images: [
-              'https://via.placeholder.com/400x300?text=Logo+Template+3',
-              'https://via.placeholder.com/400x300?text=Logo+Template+4'
-            ],
-            price: 349
-          }
-        ]
-      },
-      {
-        id: '2',
-        title: 'Social Media Templates',
-        folders: [
-          {
-            id: 'f3',
-            folderNumber: 3,
-            images: [
-              'https://via.placeholder.com/400x300?text=Social+Template+1',
-              'https://via.placeholder.com/400x300?text=Social+Template+2'
-            ],
-            price: 199
-          }
-        ]
-      },
-      {
-        id: '3',
-        title: 'Brand Identity Packages',
-        folders: [
-          {
-            id: 'f4',
-            folderNumber: 4,
-            images: [
-              'https://via.placeholder.com/400x300?text=Brand+Package+1',
-              'https://via.placeholder.com/400x300?text=Brand+Package+2'
-            ],
-            price: 499
-          }
-        ]
+  const categories = await prisma.templateCategory.findMany({
+    include: {
+      folders: {
+        where: { isActive: true },
+        select: { id: true, folderNumber: true, images: true, price: true }
       }
-    ];
-    res.json({ categories: mockCategories });
-  }
+    },
+    orderBy: { title: 'asc' }
+  });
+  res.json({ categories });
 });
 
 // ─── ADMIN: CREATE CATEGORY ──────────────────────────────────────────────────

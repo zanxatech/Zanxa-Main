@@ -1,10 +1,9 @@
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
-const { PrismaClient } = require('@prisma/client');
 const { asyncHandler, AppError } = require('../utils/helpers');
 const { sendOrderConfirmationEmail } = require('../services/email.service');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,

@@ -14,14 +14,17 @@ export default function BlogPreview() {
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
-        const res = await fetch(`${API_URL}/blogs`);
+        const res = await fetch(`${API_URL}/blogs`).catch(() => null);
+        
+        if (!res) return;
+        
         if (res.ok) {
-          const data = await res.json();
+          const data = await res.json().catch(() => ({ posts: [] }));
           // Keep only the first 3 posts for the preview
           setBlogPosts((data.posts || []).slice(0, 3));
         }
       } catch (err) {
-        console.error("Failed to fetch blogs", err);
+        // Silently handle any other synchronous errors
       }
     };
     fetchBlogs();

@@ -1,8 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
 const { asyncHandler, AppError } = require('../utils/helpers');
 const { uploadMultipleToCloudinary } = require('../services/storage.service');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // ─── GET ALL WEBSITE PROJECTS ───────────────────────────────────────────────
 const getProjects = asyncHandler(async (req, res) => {

@@ -1,7 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
 const { asyncHandler, AppError, generateMeetingCode } = require('../utils/helpers');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // ─── CREATE MEETING ───────────────────────────────────────────────────────────
 const createMeeting = asyncHandler(async (req, res) => {

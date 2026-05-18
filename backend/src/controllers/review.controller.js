@@ -1,7 +1,8 @@
-const { PrismaClient } = require('@prisma/client');
+
 const { asyncHandler, AppError } = require('../utils/helpers');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
+
 
 /**
  * Post a new review for a course
@@ -68,46 +69,17 @@ const getCourseReviews = asyncHandler(async (req, res) => {
  * Get featured reviews for landing page
  */
 const getFeaturedReviews = asyncHandler(async (req, res) => {
-  try {
-    const reviews = await prisma.courseReview.findMany({
-      take: 5,
-      where: { rating: { gte: 4 } },
-      include: {
-        user: { select: { name: true, avatar: true } },
-        course: { select: { title: true } }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+  const reviews = await prisma.courseReview.findMany({
+    take: 5,
+    where: { rating: { gte: 4 } },
+    include: {
+      user: { select: { name: true, avatar: true } },
+      course: { select: { title: true } }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
 
-    res.json({ reviews });
-  } catch (error) {
-    // Fallback with mock data when database is not available
-    console.warn('⚠️ Database unavailable, returning mock review data');
-    const mockReviews = [
-      {
-        id: '1',
-        rating: 5,
-        comment: 'Excellent course! Very informative and well-structured.',
-        user: { name: 'John Doe', avatar: 'https://via.placeholder.com/48' },
-        course: { title: 'Web Development Fundamentals' }
-      },
-      {
-        id: '2',
-        rating: 5,
-        comment: 'Great learning experience. The instructors are very helpful.',
-        user: { name: 'Jane Smith', avatar: 'https://via.placeholder.com/48' },
-        course: { title: 'Advanced React Patterns' }
-      },
-      {
-        id: '3',
-        rating: 4,
-        comment: 'Good content and practical examples.',
-        user: { name: 'Alex Johnson', avatar: 'https://via.placeholder.com/48' },
-        course: { title: 'Creative Design Masterclass' }
-      }
-    ];
-    res.json({ reviews: mockReviews });
-  }
+  res.json({ reviews });
 });
 
 module.exports = { createReview, getCourseReviews, getFeaturedReviews };

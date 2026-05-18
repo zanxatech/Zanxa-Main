@@ -1,8 +1,7 @@
-const { PrismaClient } = require('@prisma/client');
 const { asyncHandler, AppError } = require('../utils/helpers');
 const { uploadToCloudinary } = require('../services/storage.service');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // ─── PUBLIC: GET ALL PUBLISHED COURSES ────────────────────────────────────────
 const getCourses = asyncHandler(async (req, res) => {
@@ -229,6 +228,18 @@ const updateModule = asyncHandler(async (req, res) => {
 const deleteModule = asyncHandler(async (req, res) => {
   await prisma.courseModule.delete({ where: { id: req.params.id } });
   res.json({ message: 'Module deleted' });
+});
+
+// ─── ADMIN: UPLOAD COURSE VIDEO ─────────────────────────────────────────────
+const uploadCourseVideo = asyncHandler(async (req, res) => {
+  if (!req.file) throw AppError('No video file provided', 400);
+
+  const b64 = Buffer.from(req.file.buffer).toString('base64');
+  const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+  const videoUrl = await uploadToCloudinary(dataURI, 'course_videos');
+
+  res.json({ message: 'Video uploaded successfully', videoUrl });
 });
 
 // ─── USER: MARK MODULE AS COMPLETE ───────────────────────────────────────────
@@ -550,5 +561,6 @@ module.exports = {
   enrollCourse, updateEnrollmentStatus, getPendingEnrollments, getMyEnrollments,
   addQuizQuestion, deleteQuizQuestion, getQuizQuestions, getCourseQuiz, submitQuizAttempt,
   getPendingCertificates, approveCertificate, getMyCertificate,
-  addReview
+  addReview,
+  uploadCourseVideo
 };

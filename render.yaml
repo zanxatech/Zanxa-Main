@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: zanxa-tech-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production

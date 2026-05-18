@@ -8,8 +8,8 @@ async function main() {
   console.log('🌱 Seeding Zanxa Tech database...');
 
   // Create Admin
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@zanxatech.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'ZanxaAdmin@2024';
+  const adminEmail = process.env.ADMIN_EMAIL || 'zanxatech@gmail.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'Zanxatech@198';
 
   const existing = await prisma.admin.findUnique({ where: { email: adminEmail } });
   if (!existing) {

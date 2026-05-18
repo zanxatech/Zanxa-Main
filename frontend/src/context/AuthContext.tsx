@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       } else {
         const errText = await res.text();
-        console.error("[Auth Debug] Backend sync failed text:", errText);
+        console.warn("[Auth Debug] Backend sync failed text:", errText);
         // Fallback to basic Firebase info if backend profile fails
         setUser({
           uid: firebaseUser.uid,
@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
     } catch (err) {
-      console.error("Profile sync failed:", err);
+      console.warn("Profile sync failed:", err);
     }
   };
 

@@ -1,7 +1,6 @@
-const { PrismaClient } = require('@prisma/client');
 const { asyncHandler, AppError } = require('../utils/helpers');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 // ─── DASHBOARD STATS (Real-time) ──────────────────────────────────────────────
 const getDashboardStats = asyncHandler(async (req, res) => {

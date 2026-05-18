@@ -1,11 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
 const { generateOTP, asyncHandler, AppError } = require('../utils/helpers');
 const { sendOTPEmail } = require('../services/email.service');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 const signToken = (id, role) =>
   jwt.sign({ id, role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
@@ -69,6 +68,24 @@ const loginAdmin = asyncHandler(async (req, res) => {
   if (!email || !password) throw AppError('Email and password required', 400);
 
   const admin = await prisma.admin.findUnique({ where: { email } });
+  
+  // Fallback check against .env credentials for development/emergency access
+  const envAdminEmail = process.env.ADMIN_EMAIL || 'zanxatech@gmail.com';
+  const envAdminPass = process.env.ADMIN_PASSWORD || 'Zanxatech@198';
+
+  if (email === envAdminEmail && password === envAdminPass) {
+    console.log(`[AUTH] Admin login successful via .env fallback: ${email}`);
+    // If admin doesn't exist in DB yet, create them or just sign token with a dummy ID
+    const adminId = admin ? admin.id : 'env-admin-id';
+    const adminName = admin ? admin.name : 'Zanxa Admin';
+    
+    const token = signToken(adminId, 'ADMIN');
+    return res.json({
+      token,
+      user: { id: adminId, name: adminName, email, role: 'ADMIN' }
+    });
+  }
+
   if (!admin) {
     console.error(`[AUTH] Admin login failed: Email not found (${email})`);
     throw AppError('Invalid credentials', 401);

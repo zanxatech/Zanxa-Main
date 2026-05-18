@@ -1,10 +1,9 @@
-const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const { asyncHandler, AppError, generateOTP } = require('../utils/helpers');
 const { uploadMultipleToCloudinary } = require('../services/storage.service');
 const { sendOTPEmail } = require('../services/email.service');
 
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 /**
  * Register a new employee (Public)

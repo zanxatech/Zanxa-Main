@@ -14,11 +14,19 @@ export default function Testimonials() {
     const fetchFeatured = async () => {
       try {
         const fetchUrl = `${API_URL}/reviews/featured`;
-        const res = await fetch(fetchUrl);
-        const data = await res.json();
-        setReviews(data.reviews || []);
+        const res = await fetch(fetchUrl).catch(() => null);
+        
+        if (!res) {
+          setLoading(false);
+          return;
+        }
+        
+        if (res.ok) {
+          const data = await res.json().catch(() => ({ reviews: [] }));
+          setReviews(data.reviews || []);
+        }
       } catch (err) {
-        console.error("Testimonials fetch failed", err);
+        // Silently handle any other synchronous errors
       } finally {
         setLoading(false);
       }

@@ -8,18 +8,11 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configure Supabase Storage (for Certificates) - with graceful fallback
-let supabase = null;
-try {
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY // Use service key for admin write access
-    );
-  }
-} catch (error) {
-  console.warn('⚠️ Supabase initialization failed:', error.message);
-}
+// Configure Supabase Storage (for Certificates)
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY // Use service key for admin write access
+);
 
 /**
  * Upload an image to Cloudinary
@@ -57,10 +50,6 @@ const uploadMultipleToCloudinary = async (fileStrings, folder) => {
  */
 const uploadCertificateToSupabase = async (fileBody, fileName) => {
   try {
-    if (!supabase) {
-      throw new Error('Supabase is not configured');
-    }
-
     const { data, error } = await supabase.storage
       .from('certificates')
       .upload(`issued/${fileName}`, fileBody, {
@@ -86,3 +75,5 @@ module.exports = {
   uploadMultipleToCloudinary,
   uploadCertificateToSupabase
 };
+
+
